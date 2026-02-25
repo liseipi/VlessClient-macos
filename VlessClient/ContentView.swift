@@ -208,6 +208,7 @@ struct ContentView: View {
             case 0: DashboardView()
             case 1: ConfigListView()
             case 2: LogView()
+            case 3: AboutView()
             default: DashboardView()
             }
         }
@@ -227,6 +228,7 @@ struct SidebarView: View {
             Label(lm.t(.navDashboard), systemImage: "gauge").tag(0)
             Label(lm.t(.navConfigs),   systemImage: "list.bullet").tag(1)
             Label(lm.t(.navLogs),      systemImage: "doc.text").tag(2)
+            Label(lm.t(.navAbout),     systemImage: "info.circle").tag(3)
         }
         .listStyle(.sidebar)
         .navigationTitle(lm.t(.appName))
@@ -870,6 +872,227 @@ struct LogView: View {
             .padding(.horizontal, 12).padding(.vertical, 6)
         }
         .navigationTitle(lm.t(.logTitle))
+    }
+}
+
+// MARK: - About View
+
+struct AboutView: View {
+    @EnvironmentObject var lm: LanguageManager
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // App Logo & Name
+                VStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.3)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 120, height: 120)
+                        
+                        Image(systemName: "shield.lefthalf.filled")
+                            .font(.system(size: 56))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.blue, .purple],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                    
+                    VStack(spacing: 4) {
+                        Text("VlessClient")
+                            .font(.system(size: 32, weight: .bold))
+                        Text(lm.t(.aboutVersion))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.top, 32)
+                
+                // Description
+                Text(lm.t(.aboutDesc))
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                
+                Divider()
+                    .padding(.horizontal, 40)
+                
+                // Developer Info
+                GroupBox {
+                    VStack(spacing: 10) {
+                        AboutInfoRow(
+                            icon: "person.circle.fill",
+                            iconColor: .blue,
+                            title: lm.t(.aboutDeveloper),
+                            value: "Oli Liu"
+                        )
+                        AboutInfoRow(
+                            icon: "globe",
+                            iconColor: .green,
+                            title: lm.t(.aboutWebsite),
+                            value: "www.musicses.com",
+                            isLink: true,
+                            url: "https://www.musicses.com"
+                        )
+                        AboutInfoRow(
+                            icon: "link.circle.fill",
+                            iconColor: .orange,
+                            title: "GitHub",
+                            value: "github.com/liseipi",
+                            isLink: true,
+                            url: "https://github.com/liseipi"
+                        )
+                    }
+                    .padding(8)
+                } label: {
+                    Label(lm.t(.aboutContact), systemImage: "person.2.fill")
+                        .font(.subheadline)
+                }
+                .padding(.horizontal, 40)
+                
+                
+                // Features
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 10) {
+                        FeatureRow(icon: "checkmark.shield.fill", text: lm.t(.aboutFeature1), color: .green)
+                        FeatureRow(icon: "network", text: lm.t(.aboutFeature2), color: .blue)
+                        FeatureRow(icon: "arrow.triangle.2.circlepath", text: lm.t(.aboutFeature3), color: .orange)
+                        FeatureRow(icon: "menubar.rectangle", text: lm.t(.aboutFeature4), color: .purple)
+                        FeatureRow(icon: "globe.badge.chevron.backward", text: lm.t(.aboutFeature5), color: .cyan)
+                    }
+                    .padding(12)
+                } label: {
+                    Label(lm.t(.aboutFeatures), systemImage: "star.fill")
+                }
+                .padding(.horizontal, 40)
+                
+                // Copyright
+                VStack(spacing: 4) {
+                    Text("© 2026 liseipi")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(lm.t(.aboutLicense))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.top, 16)
+                .padding(.bottom, 32)
+            }
+        }
+        .navigationTitle(lm.t(.navAbout))
+    }
+}
+
+// MARK: - About Info Row
+
+struct AboutInfoRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let value: String
+    var isLink: Bool = false
+    var url: String?
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundStyle(iconColor)
+                .frame(width: 28)
+            
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                
+                if isLink, let url = url {
+                    Button(action: {
+                        if let nsurl = URL(string: url.hasPrefix("http") ? url : "https://\(url)") {
+                            NSWorkspace.shared.open(nsurl)
+                        }
+                    }) {
+                        Text(value)
+                            .font(.subheadline)
+                            .foregroundStyle(.blue)
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { hovering in
+                        if hovering {
+                            NSCursor.pointingHand.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
+                } else {
+                    Text(value)
+                        .font(.subheadline)
+                        .textSelection(.enabled)
+                }
+            }
+            
+            Spacer()
+            
+            if isLink {
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+// MARK: - Tech Badge
+
+struct TechBadge: View {
+    let icon: String
+    let text: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+            Text(text)
+                .font(.system(size: 13, weight: .medium))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(color.opacity(0.15))
+        .foregroundStyle(color)
+        .clipShape(Capsule())
+    }
+}
+
+// MARK: - Feature Row
+
+struct FeatureRow: View {
+    let icon: String
+    let text: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(color)
+                .frame(width: 24)
+            
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+            
+            Spacer()
+        }
     }
 }
 

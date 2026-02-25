@@ -52,6 +52,7 @@ enum L10n {
     case navDashboard
     case navConfigs
     case navLogs
+    case navAbout
 
     // Status
     case statusRunning
@@ -129,6 +130,21 @@ enum L10n {
     case logEntries(Int)
     case btnClear
 
+    // About
+    case aboutVersion
+    case aboutDesc
+    case aboutDeveloper
+    case aboutWebsite
+    case aboutContact
+    case aboutTechStack
+    case aboutFeatures
+    case aboutFeature1
+    case aboutFeature2
+    case aboutFeature3
+    case aboutFeature4
+    case aboutFeature5
+    case aboutLicense
+
     // MenuBar
     case menuStartProxy
     case menuStopProxy
@@ -155,6 +171,7 @@ enum L10n {
         case .navDashboard:             return "Dashboard"
         case .navConfigs:               return "Configs"
         case .navLogs:                  return "Logs"
+        case .navAbout:                 return "About"
 
         case .statusRunning:            return "Running"
         case .statusStopped:            return "Stopped"
@@ -225,6 +242,21 @@ enum L10n {
         case .logEntries(let n):        return "\(n) entr\(n == 1 ? "y" : "ies")"
         case .btnClear:                 return "Clear"
 
+        // About
+        case .aboutVersion:             return "Version 1.0"
+        case .aboutDesc:                return "A modern VLESS protocol client for macOS with SOCKS5 and HTTP proxy support."
+        case .aboutDeveloper:           return "Developer"
+        case .aboutWebsite:             return "Website"
+        case .aboutContact:             return "Contact Information"
+        case .aboutTechStack:           return "Technology Stack"
+        case .aboutFeatures:            return "Key Features"
+        case .aboutFeature1:            return "VLESS protocol with WebSocket support"
+        case .aboutFeature2:            return "SOCKS5 & HTTP proxy in one port"
+        case .aboutFeature3:            return "Auto-reconnect on network changes"
+        case .aboutFeature4:            return "Menu bar quick access"
+        case .aboutFeature5:            return "Multi-language support (EN/中文)"
+        case .aboutLicense:             return "Open Source · MIT License"
+
         case .menuStartProxy:           return "Start Proxy"
         case .menuStopProxy:            return "Stop Proxy"
         case .menuSettings:             return "Settings..."
@@ -242,6 +274,7 @@ enum L10n {
         case .navDashboard:             return "概览"
         case .navConfigs:               return "配置"
         case .navLogs:                  return "日志"
+        case .navAbout:                 return "关于"
 
         case .statusRunning:            return "运行中"
         case .statusStopped:            return "已停止"
@@ -311,6 +344,21 @@ enum L10n {
         case .logTitle:                 return "日志"
         case .logEntries(let n):        return "共 \(n) 条"
         case .btnClear:                 return "清空"
+
+        // About
+        case .aboutVersion:             return "版本 1.0"
+        case .aboutDesc:                return "一个现代化的 macOS VLESS 协议客户端，支持 SOCKS5 和 HTTP 代理。"
+        case .aboutDeveloper:           return "开发者"
+        case .aboutWebsite:             return "官网"
+        case .aboutContact:             return "联系方式"
+        case .aboutTechStack:           return "技术栈"
+        case .aboutFeatures:            return "主要特性"
+        case .aboutFeature1:            return "支持 VLESS 协议与 WebSocket 传输"
+        case .aboutFeature2:            return "单端口同时支持 SOCKS5 和 HTTP 代理"
+        case .aboutFeature3:            return "网络变化时自动重连"
+        case .aboutFeature4:            return "菜单栏快速访问"
+        case .aboutFeature5:            return "多语言支持（English/中文）"
+        case .aboutLicense:             return "开源项目 · MIT 协议"
 
         case .menuStartProxy:           return "启动代理"
         case .menuStopProxy:            return "停止代理"
