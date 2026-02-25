@@ -90,7 +90,7 @@ struct VlessClientApp: App {
                 .environmentObject(langManager)
                 .environment(\.appDelegate, appDelegate)
         }
-        .menuBarExtraStyle(.window)   // ←←← 加上这一行就行了！
+        .menuBarExtraStyle(.window)
         #endif
     }
 }
@@ -451,24 +451,26 @@ struct ConfigListView: View {
     @State private var showImport = false
 
     var body: some View {
-        List {
-            ForEach(configManager.configs) { config in
-                ConfigRowView(config: config)
-                    .contextMenu {
-                        Button(lm.t(.ctxSetActive)) {
-                            configManager.setActive(config); proxyVM.restart()
-                        }
-                        Button(lm.t(.ctxEdit))     { editingConfig = config }
-                        Button(lm.t(.ctxCopyURI))  { copyURI(config) }
-                        Divider()
-                        Button(lm.t(.ctxDelete), role: .destructive) {
-                            if let idx = configManager.configs.firstIndex(where: { $0.id == config.id }) {
-                                configManager.delete(at: IndexSet([idx]))
+        ScrollView {
+            VStack(spacing: 12) {
+                ForEach(configManager.configs) { config in
+                    ConfigRowView(config: config)
+                        .contextMenu {
+                            Button(lm.t(.ctxSetActive)) {
+                                configManager.setActive(config); proxyVM.restart()
+                            }
+                            Button(lm.t(.ctxEdit))     { editingConfig = config }
+                            Button(lm.t(.ctxCopyURI))  { copyURI(config) }
+                            Divider()
+                            Button(lm.t(.ctxDelete), role: .destructive) {
+                                if let idx = configManager.configs.firstIndex(where: { $0.id == config.id }) {
+                                    configManager.delete(at: IndexSet([idx]))
+                                }
                             }
                         }
-                    }
+                }
             }
-            .onDelete { configManager.delete(at: $0) }
+            .padding(20)
         }
         .navigationTitle(lm.t(.configListTitle))
         .toolbar {
@@ -496,43 +498,148 @@ struct ConfigListView: View {
     }
 }
 
-// MARK: - ConfigRowView
+// MARK: - ConfigRowView (✨ 美化后的配置卡片)
 
 struct ConfigRowView: View {
     let config: VlessConfig
     @EnvironmentObject var configManager: ConfigManager
     @EnvironmentObject var proxyVM: ProxyViewModel
     @EnvironmentObject var lm: LanguageManager
+    @State private var isHovered = false
 
     var isActive: Bool { configManager.activeConfig?.id == config.id }
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text(config.name).font(.headline)
-                    if isActive {
-                        Text(lm.t(.badgeActive))
-                            .font(.caption.bold())
-                            .padding(.horizontal, 6).padding(.vertical, 2)
+        VStack(spacing: 0) {
+            HStack(spacing: 16) {
+                // 左侧图标
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isActive ? Color.green.opacity(0.15) : Color.blue.opacity(0.1))
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: isActive ? "checkmark.shield.fill" : "server.rack")
+                        .font(.system(size: 24))
+                        .foregroundStyle(isActive ? .green : .blue)
+                }
+                
+                // 中间配置信息
+                VStack(alignment: .leading, spacing: 8) {
+                    // 名称 + 标签
+                    HStack(spacing: 8) {
+                        Text(config.name)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        
+                        if isActive {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 10))
+                                Text(lm.t(.badgeActive))
+                                    .font(.system(size: 11, weight: .bold))
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
                             .background(Color.green.opacity(0.15))
                             .foregroundStyle(.green)
                             .clipShape(Capsule())
+                        }
+                    }
+                    
+                    // 服务器信息
+                    HStack(spacing: 16) {
+                        // 远程服务器
+                        HStack(spacing: 6) {
+                            Image(systemName: "globe")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                            Text("\(config.server):\(config.port)")
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        // 分隔符
+                        Circle()
+                            .fill(Color.secondary.opacity(0.3))
+                            .frame(width: 3, height: 3)
+                        
+                        // 本地端口
+                        HStack(spacing: 6) {
+                            Image(systemName: "network")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                            Text(":\(config.listenPort)")
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                        
+                        // 分隔符
+                        Circle()
+                            .fill(Color.secondary.opacity(0.3))
+                            .frame(width: 3, height: 3)
+                        
+                        // 安全类型
+                        HStack(spacing: 4) {
+                            Image(systemName: config.security == "tls" ? "lock.fill" : "lock.open")
+                                .font(.system(size: 11))
+                                .foregroundStyle(config.security == "tls" ? .green : .secondary)
+                            Text(config.security.uppercased())
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(config.security == "tls" ? .green : .secondary)
+                        }
                     }
                 }
-                Text("\(config.server):\(config.port)  ·  port \(config.listenPort)")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Spacer()
-            if !isActive {
-                Button(lm.t(.btnUse)) {
-                    configManager.setActive(config); proxyVM.restart()
+                
+                Spacer()
+                
+                // 右侧操作按钮
+                if !isActive {
+                    Button(action: {
+                        configManager.setActive(config)
+                        proxyVM.restart()
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "play.circle.fill")
+                                .font(.system(size: 14))
+                            Text(lm.t(.btnUse))
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color.blue.opacity(0.1))
+                        .foregroundStyle(.blue)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.green)
+                        Text(lm.t(.statusActive))
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.blue)
             }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isActive ? Color.green.opacity(0.05) : Color.clear)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(
+                                isActive ? Color.green.opacity(0.3) :
+                                (isHovered ? Color.blue.opacity(0.3) : Color.clear),
+                                lineWidth: 1.5
+                            )
+                    )
+            )
         }
-        .padding(.vertical, 4)
+        .onHover { hovering in
+            isHovered = hovering
+        }
     }
 }
 
