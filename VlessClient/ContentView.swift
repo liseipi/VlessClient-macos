@@ -1,10 +1,53 @@
 import SwiftUI
 import Combine
+import AppKit
+
+// MARK: - App Delegate
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    var mainWindow: NSWindow?
+    
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // 窗口会由 WindowGroup 自动创建
+    }
+    
+    func showMainWindow() {
+        // 查找或创建主窗口
+        if let window = mainWindow, window.isVisible {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        
+        // 查找现有窗口
+        for window in NSApp.windows {
+            let className = NSStringFromClass(type(of: window))
+            if !className.contains("StatusBar") && !className.contains("Panel") {
+                window.makeKeyAndOrderFront(nil)
+                window.orderFrontRegardless()
+                NSApp.activate(ignoringOtherApps: true)
+                mainWindow = window
+                
+                // 监听窗口关闭事件,但不销毁窗口,只是隐藏
+                NotificationCenter.default.addObserver(
+                    forName: NSWindow.willCloseNotification,
+                    object: window,
+                    queue: .main
+                ) { [weak self] _ in
+                    // 不让窗口真正关闭,只是隐藏
+                    window.orderOut(nil)
+                }
+                return
+            }
+        }
+    }
+}
 
 // MARK: - App Entry
 
 @main
 struct VlessClientApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var configManager  = ConfigManager()
     @StateObject private var logger         = ProxyLogger()
     @StateObject private var proxyViewModel = ProxyViewModel()
@@ -19,12 +62,23 @@ struct VlessClientApp: App {
                 .environmentObject(langManager)
                 .onAppear {
                     proxyViewModel.setup(configManager: configManager, logger: logger)
+                    
+                    // 保存窗口引用
+                    DispatchQueue.main.async {
+                        if let window = NSApp.windows.first(where: {
+                            !NSStringFromClass(type(of: $0)).contains("StatusBar")
+                        }) {
+                            appDelegate.mainWindow = window
+                            
+                            // ✅ 关键:阻止窗口真正关闭
+                            window.delegate = WindowDelegate()
+                        }
+                    }
                 }
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultSize(width: 800, height: 600)
-        // ✅ 阻止窗口被完全销毁
         .defaultPosition(.center)
 
         #if os(macOS)
@@ -34,8 +88,32 @@ struct VlessClientApp: App {
                 .environmentObject(logger)
                 .environmentObject(proxyViewModel)
                 .environmentObject(langManager)
+                .environment(\.appDelegate, appDelegate)
         }
         #endif
+    }
+}
+
+// MARK: - Window Delegate (阻止窗口关闭)
+
+class WindowDelegate: NSObject, NSWindowDelegate {
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        // 不真正关闭窗口,只是隐藏
+        sender.orderOut(nil)
+        return false
+    }
+}
+
+// MARK: - Environment Key for AppDelegate
+
+private struct AppDelegateKey: EnvironmentKey {
+    static let defaultValue: AppDelegate? = nil
+}
+
+extension EnvironmentValues {
+    var appDelegate: AppDelegate? {
+        get { self[AppDelegateKey.self] }
+        set { self[AppDelegateKey.self] = newValue }
     }
 }
 
@@ -693,6 +771,7 @@ struct MenuBarView: View {
     @EnvironmentObject var proxyVM: ProxyViewModel
     @EnvironmentObject var configManager: ConfigManager
     @EnvironmentObject var lm: LanguageManager
+    @Environment(\.appDelegate) var appDelegate
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -713,9 +792,9 @@ struct MenuBarView: View {
                 proxyVM.toggle()
             }
 
-            // ✅ 修复：使用正确的方式打开主窗口
+            // ✅ 使用 AppDelegate 显示窗口
             Button(lm.t(.menuSettings)) {
-                activateMainWindow()
+                appDelegate?.showMainWindow()
             }
 
             // 语言切换
@@ -732,46 +811,5 @@ struct MenuBarView: View {
         }
         .padding(8)
         .frame(width: 200)
-    }
-    
-    // ✅ 正确打开主窗口的方法
-    private func activateMainWindow() {
-        DispatchQueue.main.async {
-            NSApp.activate(ignoringOtherApps: true)
-            
-            // 查找主窗口（排除 StatusBar 和 Panel）
-            let mainWindow = NSApp.windows.first { window in
-                let className = NSStringFromClass(type(of: window))
-                return !className.contains("StatusBar") &&
-                       !className.contains("Panel") &&
-                       window.canBecomeKey
-            }
-            
-            if let window = mainWindow {
-                // 找到窗口，显示它
-                if window.isMiniaturized {
-                    window.deminiaturize(nil)
-                }
-                window.makeKeyAndOrderFront(nil)
-                window.orderFrontRegardless()
-            } else {
-                // 没有找到窗口，通过 AppleScript 创建新窗口
-                let script = """
-                tell application "System Events"
-                    tell process "VlessClient"
-                        set frontmost to true
-                        if (count of windows) > 0 then
-                            perform action "AXRaise" of window 1
-                        end if
-                    end tell
-                end tell
-                """
-                
-                if let appleScript = NSAppleScript(source: script) {
-                    var error: NSDictionary?
-                    appleScript.executeAndReturnError(&error)
-                }
-            }
-        }
     }
 }
